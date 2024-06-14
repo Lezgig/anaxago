@@ -11,11 +11,11 @@ use App\Repository\TaskRepository;
 
 class TaskController extends AbstractController
 {
-    #[Route('/tasks', name: 'app_task', methods: ['GET'])]
-    public function tasks(TaskRepository $taskRepository): Response
+    #[Route('/tasks', name: 'app_task', methods: ['GET'], defaults: ['page' => 1])]
+    public function tasks(TaskRepository $taskRepository, int $page): Response
     {
-        $tasks = $taskRepository->findAll();
-
+        $tasks = $taskRepository->findAllTasks($page);
+        dd($tasks);
         return $this->render('task/index.html.twig', [
             'tasks' => $tasks,
         ]);
