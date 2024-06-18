@@ -21,7 +21,7 @@ class TaskRepository extends ServiceEntityRepository
     {
             return $this->createQueryBuilder('t')
                 ->setFirstResult(($page - 1) * 10)
-                ->setMaxResults(10)
+                ->setMaxResults(5)
                 ->orderBy('t.id', 'ASC')
                 ->getQuery()
                 ->getResult();
