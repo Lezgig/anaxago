@@ -7,14 +7,17 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Task;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use App\Repository\TaskRepository;
+use App\Repository\UserRepository;
 
 class TaskController extends AbstractController
 {
-    #[Route('/tasks', name: 'app_task', methods: ['GET'], defaults: ['page' => 1])]
-    public function tasks(TaskRepository $taskRepository, int $page): Response
+    #[Route('/tasks', name: 'app_task', methods: ['GET'])]
+    public function tasks(TaskRepository $taskRepository,UserRepository $userRepository, #[MapQueryParameter] int $page = 1): Response
     {
-        $tasks = $taskRepository->findAllTasks($page);
+        $users = $userRepository->findAll();
+        $tasks = $taskRepository->findAll();
         dd($tasks);
         return $this->render('task/index.html.twig', [
             'tasks' => $tasks,
