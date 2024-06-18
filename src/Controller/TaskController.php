@@ -26,9 +26,9 @@ class TaskController extends AbstractController
         #[MapQueryParameter] int $page = 1,        
         ): Response
     {
-        
-        $tasks = $taskRepository->findAll();
 
+        $tasks = $taskRepository->findAllPaginated($page);
+        
         $defaultContext = [
             AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, string $format, array $context): string {
                 return $object->getTitle();

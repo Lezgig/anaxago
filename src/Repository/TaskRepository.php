@@ -17,11 +17,11 @@ class TaskRepository extends ServiceEntityRepository
         parent::__construct($registry, Task::class);
     }
 
-    public function findAllTasks(int $page): array
+    public function findAllPaginated(int $page): array
     {
             return $this->createQueryBuilder('t')
                 ->setFirstResult(($page - 1) * 10)
-                ->setMaxResults(5)
+                ->setMaxResults(10)
                 ->orderBy('t.id', 'ASC')
                 ->getQuery()
                 ->getResult();
