@@ -54,10 +54,17 @@ class TaskController extends AbstractController
             return $response;
         }
 
-        $response = new Response();
-        $response->setStatusCode(200);
-        $response->setContent('Task updated successfully');
-        return $response;
+        $defaultContext = [
+            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, string $format, array $context): string {
+                return $object->getTitle();
+            },
+        ];
+
+        $encoders = [new JsonEncoder()];
+        $normalizer = [new ObjectNormalizer(null, null, null, null, null, null, $defaultContext)];
+        $serializer = new Serializer($normalizer, $encoders);
+        $jsonContent = $serializer->serialize($task, 'json' );
+        return new JsonResponse($jsonContent, 200, [], true);
     }
 
     #[Route('/tasks/{id}', name: 'app_task_delete', methods: ['DELETE'])]
@@ -76,7 +83,7 @@ class TaskController extends AbstractController
         $entityManager->flush();
 
         $response->setStatusCode(200);
-        $response->setContent('Task updated successfully');
+        $response->setContent('Task deleted successfully');
         return $response;
     }
 
@@ -125,7 +132,7 @@ class TaskController extends AbstractController
 
         $response = new Response();
         $response->setStatusCode(200);
-        $response->setContent('Task updated successfully');
+        $response->setContent('Task created successfully');
         return $response;
     }
 
