@@ -9,11 +9,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Task;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use App\Repository\TaskRepository;
+use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 
 class TaskController extends AbstractController
 {
@@ -45,8 +47,14 @@ class TaskController extends AbstractController
             return $response;
         }
 
+        $defaultContext = [
+            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, string $format, array $context): null {
+                return null;
+            },
+        ];
+
         $encoders = [new JsonEncoder()];
-        $normalizer = [new ObjectNormalizer()];
+        $normalizer = [new ObjectNormalizer(null, null, null, null, null, null, $defaultContext)];
         $serializer = new Serializer($normalizer, $encoders);
         $jsonContent = $serializer->serialize($task, 'json' );
         return new JsonResponse($jsonContent, 200, [], true);
