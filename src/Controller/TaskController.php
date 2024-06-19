@@ -7,18 +7,32 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Task;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use App\Repository\TaskRepository;
+use App\Repository\UserRepository;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 
 class TaskController extends AbstractController
 {
-    #[Route('/tasks', name: 'app_task', methods: ['GET'], defaults: ['page' => 1])]
-    public function tasks(TaskRepository $taskRepository, int $page): Response
+    #[Route('/tasks', name: 'app_task', methods: ['GET'])]
+    public function tasks(
+        TaskRepository $taskRepository,
+        #[MapQueryParameter] int $page = 1,        
+        ): Response
     {
-        $tasks = $taskRepository->findAllTasks($page);
-        dd($tasks);
-        return $this->render('task/index.html.twig', [
-            'tasks' => $tasks,
-        ]);
+
+        $tasks = $taskRepository->findAllPaginated($page);
+
+        $encoders = [new JsonEncoder()];
+        $normalizer = [new ObjectNormalizer()];
+        $serializer = new Serializer($normalizer, $encoders);
+        $jsonContent = $serializer->serialize($tasks, 'json' );
+        return new JsonResponse($jsonContent, 200, [], true);
     }
 
     #[Route('/tasks/{id}', name: 'app_task_show', methods: ['GET'])]
@@ -26,44 +40,93 @@ class TaskController extends AbstractController
     {
         $task = $taskRepository->find($id);
 
-        return $this->render('task/show.html.twig', [
-            'task' => $task,
-        ]);
+        if(!$task) {
+            $response = new Response();
+            $response->setStatusCode(200);
+            $response->setContent('Task not found');
+            return $response;
+        }
+
+        $defaultContext = [
+            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, string $format, array $context): null {
+                return null;
+            },
+        ];
+
+        $encoders = [new JsonEncoder()];
+        $normalizer = [new ObjectNormalizer(null, null, null, null, null, null, $defaultContext)];
+        $serializer = new Serializer($normalizer, $encoders);
+        $jsonContent = $serializer->serialize($task, 'json' );
+        return new JsonResponse($jsonContent, 200, [], true);
     }
 
     #[Route('/tasks/{id}', name: 'app_task_delete', methods: ['DELETE'])]
     public function delete(TaskRepository $taskRepository, int $id, EntityManagerInterface $entityManager): Response
     {
         $task = $taskRepository->find($id);
+        $response = new Response();
+
+        if(!$task) {
+            $response->setStatusCode(200);
+            $response->setContent('Task not found');
+            return $response;
+        }
 
         $entityManager->remove($task);
         $entityManager->flush();
 
-        return $this->redirectToRoute('app_task');
+        $response->setStatusCode(200);
+        $response->setContent('Task deleted successfully');
+        return $response;
     }
 
     #[Route('/tasks/{id}', name: 'app_task_update', methods: ['PUT'])]
-    public function update(TaskRepository $taskRepository, int $id, EntityManagerInterface $entityManager): Response
+    public function update( Request $request, TaskRepository $taskRepository,int $id, EntityManagerInterface $entityManager): Response
     {
+        
+        $incomingTask = json_decode($request->getContent());
+
         $task = $taskRepository->find($id);
+        if(!$task) {
+            $response = new Response();
+            $response->setStatusCode(200);
+            $response->setContent('Task not found');
+            return $response;
+        }
+        $task->setTitle($incomingTask->title);
+        $task->setDescription($incomingTask->description);
+        $task->setStatus($incomingTask->status);
+        $task->setCreatedAt(new \DateTimeImmutable($incomingTask->createdAt));
 
         $entityManager->persist($task);
         $entityManager->flush();
 
-        return $this->redirectToRoute('app_task_show', ['id' => $task->getId()]);
+        $response = new Response();
+        $response->setStatusCode(200);
+        $response->setContent('Task updated successfully');
+        return $response;
+
     }
 
     #[Route('/tasks', name: 'app_task_create', methods: ['POST'])]
-    public function create(EntityManagerInterface $entityManager): Response
+    public function create(EntityManagerInterface $entityManager, Request $request): Response
     {
+
+        $incomingTask = json_decode($request->getContent());
         $task = new Task();
-        $task->setTitle('New Task');
-        $task->setDescription('Description of the new task');
+
+        $task->setTitle($incomingTask->title);
+        $task->setDescription($incomingTask->description);
+        $task->setStatus($incomingTask->status);
+        $task->setCreatedAt(new \DateTimeImmutable($incomingTask->createdAt));
 
         $entityManager->persist($task);
         $entityManager->flush();
 
-        return $this->redirectToRoute('app_task_show', ['id' => $task->getId()]);
+        $response = new Response();
+        $response->setStatusCode(200);
+        $response->setContent('Task created successfully');
+        return $response;
     }
 
 }
