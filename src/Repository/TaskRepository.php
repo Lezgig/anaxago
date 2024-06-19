@@ -5,7 +5,6 @@ namespace App\Repository;
 use App\Entity\Task;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use App\Entity\User;
 
 /**
  * @extends ServiceEntityRepository<Task>
@@ -19,12 +18,18 @@ class TaskRepository extends ServiceEntityRepository
 
     public function findAllPaginated(int $page): array
     {
-            return $this->createQueryBuilder('t')
-                ->setFirstResult(($page - 1) * 10)
-                ->setMaxResults(10)
-                ->orderBy('t.id', 'ASC')
-                ->getQuery()
-                ->getResult();
+        $entityManager = $this->getEntityManager();
+
+        $sql = 'SELECT t.title , u.firstName, u.lastName, u.email
+            FROM App\Entity\Task t
+            INNER JOIN t.user u
+            ORDER BY t.id ASC';
+
+        $query = $entityManager->createQuery($sql)
+            ->setFirstResult(($page - 1) * 10)
+            ->setMaxResults(10);
+
+            return $query->getResult();
         
     }
 
