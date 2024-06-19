@@ -9,34 +9,25 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Task;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use App\Repository\TaskRepository;
-use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 
 class TaskController extends AbstractController
 {
     #[Route('/tasks', name: 'app_task', methods: ['GET'])]
     public function tasks(
         TaskRepository $taskRepository,
-        UserRepository $userRepository,
         #[MapQueryParameter] int $page = 1,        
         ): Response
     {
 
         $tasks = $taskRepository->findAllPaginated($page);
-        
-        $defaultContext = [
-            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, string $format, array $context): string {
-                return $object->getTitle();
-            },
-        ];
 
         $encoders = [new JsonEncoder()];
-        $normalizer = [new ObjectNormalizer(null, null, null, null, null, null, $defaultContext)];
+        $normalizer = [new ObjectNormalizer()];
         $serializer = new Serializer($normalizer, $encoders);
         $jsonContent = $serializer->serialize($tasks, 'json' );
         return new JsonResponse($jsonContent, 200, [], true);
@@ -54,14 +45,8 @@ class TaskController extends AbstractController
             return $response;
         }
 
-        $defaultContext = [
-            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, string $format, array $context): string {
-                return $object->getTitle();
-            },
-        ];
-
         $encoders = [new JsonEncoder()];
-        $normalizer = [new ObjectNormalizer(null, null, null, null, null, null, $defaultContext)];
+        $normalizer = [new ObjectNormalizer()];
         $serializer = new Serializer($normalizer, $encoders);
         $jsonContent = $serializer->serialize($task, 'json' );
         return new JsonResponse($jsonContent, 200, [], true);
